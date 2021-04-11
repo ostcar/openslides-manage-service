@@ -2,10 +2,14 @@ package manage
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
+	"path"
 
+	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +21,8 @@ This command executes the following steps to start OpenSlides:
 - Run the docker compose file with the "up" command in daemonized mode.
 - TODO ...
 `
+
+const appName = "openslides"
 
 // CmdStart creates docker-compose.yml, secrets, runs docker-compose up in daemonized mode and ... TODO
 func CmdStart(cfg *ClientConfig) *cobra.Command {
@@ -30,13 +36,19 @@ func CmdStart(cfg *ClientConfig) *cobra.Command {
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 		defer cancel()
 
-		if err := createDockerComposeYML(ctx); err != nil {
+		dataPath := path.Join(xdg.DataHome, appName)
+
+		// TODO: Only create file, if it does not exists.
+		if err := createDockerComposeYML(ctx, dataPath); err != nil {
 			return fmt.Errorf("creating Docker Compose YML: %w", err)
 		}
 
-		if err := createSecrets(); err != nil {
+		if err := createSecrets(dataPath); err != nil {
 			return fmt.Errorf("creating secrets: %w", err)
 		}
+
+		// TODO: Start docker-compose. Maybe with another command like manage
+		// compose XY where XY are arguments that the user can give.
 
 		return nil
 	}
@@ -45,10 +57,10 @@ func CmdStart(cfg *ClientConfig) *cobra.Command {
 }
 
 // create Secrets creates random values uses as secrets in Docker Compose file.
-func createSecrets() error {
-	path := "secrets/"
-	if err := os.MkdirAll(path, fs.ModePerm); err != nil {
-		return fmt.Errorf("creating directory `%s`: %w", path, err)
+func createSecrets(dataPath string) error {
+	dataPath = path.Join(dataPath, "secrets")
+	if err := os.MkdirAll(dataPath, fs.ModePerm); err != nil {
+		return fmt.Errorf("creating directory `%s`: %w", dataPath, err)
 	}
 
 	secrets := []string{
@@ -56,15 +68,38 @@ func createSecrets() error {
 		"auth_cookie_key",
 	}
 	for _, s := range secrets {
-		f, err := os.Create(path + s)
+		f, err := os.Create(path.Join(dataPath, s))
 		if err != nil {
-			return fmt.Errorf("creating file `%s`: %w", path+s, err)
+			return fmt.Errorf("creating file `%s`: %w", path.Join(dataPath, s), err)
 		}
+
+		// @Norman (pls remove this comment): The defer is ok here. But there is
+		// something to know about. The defer is only called when the function
+		// exists. So if secrets would be a very long list with a million
+		// entries, then it would open a million files and close all of them at
+		// the end of the function call. To fix this, the code inside the
+		// for-loop has to be moved inside a separat function. For example an
+		// anonymous function:
+		//
+		// for {
+		//   func() {
+		//     f, err := open()
+		//     defer f.Close
+		//   }()
+		// }
+		//
+		// If you have a function that blocks forever, then you have to do it
+		// (or don't use defer).
+		//
+		// Also, there are optimizations about defer in go that do not work if
+		// the defer is inside a for-loop. But does not matter at all. Its from
+		// around 35ns to 3ns.
 		defer f.Close()
 
-		r := "my random value" // TODO: Use a random value here.
-		if _, err := f.WriteString(r); err != nil {
-			return fmt.Errorf("writing secret to file `%s`: %w", f.Name(), err)
+		// This creates cryptographically secure random bytes. 32 Bytes means
+		// 256bit. The output can contain zero bytes.
+		if _, err := io.Copy(f, io.LimitReader(rand.Reader, 32)); err != nil {
+			return fmt.Errorf("creating and writing secred: %w", err)
 		}
 	}
 
