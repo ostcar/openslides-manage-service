@@ -13,23 +13,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const startHelp = `Builds images and starts OpenSlides with Docker Compose
+const startHelp = `Builds required files and docker images.
 
 This command executes the following steps to start OpenSlides:
 - Create a local docker-compose.yml.
 - Create local secrets for the auth service.
-- Run the docker compose file with the "up" command in daemonized mode.
+- Creates the services.env.
 - TODO ...
 `
 
 const appName = "openslides"
 
-// CmdStart creates docker-compose.yml, secrets, runs docker-compose up in daemonized mode and ... TODO
-func CmdStart(cfg *ClientConfig) *cobra.Command {
+// CmdSetup creates docker-compose.yml, secrets and ... TODO
+func CmdSetup(cfg *ClientConfig) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "Builds images and starts OpenSlides with Docker Compose.",
-		Long:  startHelp,
+		Use:   "setup",
+		Short: "Builds the required files and services.",
+		Long:  helpCompose,
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -37,9 +37,10 @@ func CmdStart(cfg *ClientConfig) *cobra.Command {
 		defer cancel()
 
 		dataPath := path.Join(xdg.DataHome, appName)
+		if err := os.MkdirAll(dataPath, 0755); err != nil {
+			return fmt.Errorf("creating directory `%s`: %w", dataPath, err)
+		}
 
-		// TODO: Only create file, if it does not exists. (Or is it necessary to
-		// create in in any case, so you can use this command make an update?)
 		if err := createDockerComposeYML(ctx, dataPath); err != nil {
 			return fmt.Errorf("creating Docker Compose YML: %w", err)
 		}
@@ -51,9 +52,6 @@ func CmdStart(cfg *ClientConfig) *cobra.Command {
 		if err := createSecrets(dataPath); err != nil {
 			return fmt.Errorf("creating secrets: %w", err)
 		}
-
-		// TODO: Start docker-compose. Maybe with another command like manage
-		// compose XY where XY are arguments that the user can give.
 
 		return nil
 	}

@@ -116,11 +116,11 @@ func getCommitIDs(ctx context.Context, ref string) (map[string]string, error) {
 	return commitIDs, nil
 }
 
-//go:embed docker-compose.yml.tpl
+//go:embed default_services.env
 var defaultServiesEnv []byte
 
 func createEnvFile(dataPath string) error {
-	if err := os.WriteFile(dataPath+"/servies.env", defaultServiesEnv, 0666); err != nil {
+	if err := os.WriteFile(dataPath+"/services.env", defaultServiesEnv, 0755); err != nil {
 		return fmt.Errorf("write services file at %s: %w", dataPath+"/services", err)
 	}
 	return nil
