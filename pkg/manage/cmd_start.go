@@ -38,9 +38,14 @@ func CmdStart(cfg *ClientConfig) *cobra.Command {
 
 		dataPath := path.Join(xdg.DataHome, appName)
 
-		// TODO: Only create file, if it does not exists.
+		// TODO: Only create file, if it does not exists. (Or is it necessary to
+		// create in in any case, so you can use this command make an update?)
 		if err := createDockerComposeYML(ctx, dataPath); err != nil {
 			return fmt.Errorf("creating Docker Compose YML: %w", err)
+		}
+
+		if err := createEnvFile(dataPath); err != nil {
+			return fmt.Errorf("creating .env file: %w", err)
 		}
 
 		if err := createSecrets(dataPath); err != nil {
