@@ -42,7 +42,6 @@ $ manage tunnel -L localhost:8080:auth:9004
 // Cmd returns the set-password subcommand.
 func Cmd() *cobra.Command {
 	services := map[string]string{
-		"message-bus":       ":6379:message-bus:6379",
 		"backend-action":    ":9002:backend:9002",
 		"backend-presenter": ":9003:backend:9003",
 		"auth":              ":9004:auth:9004",
@@ -50,9 +49,10 @@ func Cmd() *cobra.Command {
 		"datastore-reader":  ":9010:datastore-reader:9010",
 		"datastore-writer":  ":9011:datastore-writer:9011",
 		"autoupdate":        ":9012:autoupdate:9012",
+		"icc":               ":9013:icc:9013",
 		"postgres":          ":5432:postgres:5432",
-		"cache":             ":6379:cache:6379", // TODO: Use another port.
-		// TODO: Add voting and icc.
+		"redis":             ":6379:redis:6379",
+		// TODO: Add voting.
 	}
 
 	var serviceNames []string
