@@ -15,6 +15,7 @@ import (
 	"github.com/OpenSlides/openslides-manage-service/pkg/datastore"
 	"github.com/OpenSlides/openslides-manage-service/pkg/initialdata"
 	"github.com/OpenSlides/openslides-manage-service/pkg/setpassword"
+	"github.com/OpenSlides/openslides-manage-service/pkg/tunnel"
 	"github.com/OpenSlides/openslides-manage-service/proto"
 	"google.golang.org/grpc"
 )
@@ -77,8 +78,8 @@ func (s *srv) SetPassword(ctx context.Context, in *proto.SetPasswordRequest) (*p
 	return setpassword.SetPassword(ctx, in, ds, auth)
 }
 
-func (s *srv) Tunnel(proto.Manage_TunnelServer) error {
-	return fmt.Errorf("currently not implemented")
+func (s *srv) Tunnel(ts proto.Manage_TunnelServer) error {
+	return tunnel.Tunnel(ts)
 }
 
 // Config holds config data for the server.
